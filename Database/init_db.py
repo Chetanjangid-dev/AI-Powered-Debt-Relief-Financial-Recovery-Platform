@@ -18,3 +18,4 @@ import models  # noqa: F401  (import needed so models register with Base)
 print("Creating tables...")
 Base.metadata.create_all(bind=engine)
 print("Done. Check for debt_relief.db in this folder.")
+#verified
