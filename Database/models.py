@@ -36,6 +36,8 @@ class Loan(Base):
     interest_rate = Column(Float, nullable=False)
     outstanding_balance = Column(Float, nullable=False)
     start_date = Column(Date, nullable=False)
+    tenure_months = Column(Integer, nullable=False)
+    emi_due_date = Column(Date, nullable=True)
     status = Column(String(30), default="active")           # active, settled, defaulted
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

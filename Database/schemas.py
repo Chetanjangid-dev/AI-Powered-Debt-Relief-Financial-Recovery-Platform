@@ -23,6 +23,8 @@ class LoanCreate(BaseModel):
     loan_amount: float = Field(..., gt=0)
     interest_rate: float = Field(..., ge=0, le=100)
     outstanding_balance: float = Field(..., ge=0)
+    tenure_months: int = Field(..., gt=0)
+    emi_due_date: Optional[date] = None
     start_date: date
 
 
