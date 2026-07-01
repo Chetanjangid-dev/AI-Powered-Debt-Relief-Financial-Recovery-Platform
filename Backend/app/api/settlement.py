@@ -72,13 +72,12 @@ def get_settlement_recommendation(request: SettlementRequest, db: Session = Depe
     # Step 3: Save settlement recommendation to database
     try:
         settlement_data = schemas.SettlementCreate(
-            user_id=request.user_id,
             loan_id=request.loan_id,
-            recommended_amount=analysis["recommended_settlement_amount"],
+            recommended_settlement_amount=analysis["recommended_settlement_amount"],
             settlement_percentage=analysis["settlement_percentage"],
-            ai_recommendation=recommendation["negotiation_strategy"],
-            status="pending",
+            negotiation_strategy=recommendation["negotiation_strategy"],
         )
+        
         saved = crud.create_settlement(db=db, settlement=settlement_data)
         recommendation["settlement_id"] = saved.id
     except Exception as e:

@@ -214,33 +214,81 @@ async def alias_rights():
     """
     Borrower rights endpoint.
     Frontend KnowYourRights.jsx calls this on load.
-    Returns list of legal rights borrowers have.
+    Returns list with both 'points' array AND 'description' — both formats work.
     """
     return {
         "rights": [
             {
-                "title": "Right to Fair Debt Collection",
-                "description": "Under the Fair Debt Collection Practices Act, debt collectors cannot harass, oppress, or abuse you in any way."
+                "title": "Fair Debt Collection Practices Act (FDCPA)",
+                "icon": "🛡️",
+                "summary": "Protects you from abusive, unfair, or deceptive debt collection practices.",
+                "description": "Protects you from abusive, unfair, or deceptive debt collection practices.",
+                "points": [
+                    "Collectors cannot call before 8 AM or after 9 PM",
+                    "You can request written validation of the debt within 30 days",
+                    "Collectors must stop contact if you send a cease-and-desist letter",
+                    "Harassment, threats, and false statements are prohibited",
+                ]
             },
             {
-                "title": "Right to Dispute a Debt",
-                "description": "You have the right to dispute a debt within 30 days of first contact. The collector must stop collection until they verify the debt."
+                "title": "Right to Debt Validation",
+                "icon": "📄",
+                "summary": "You have the right to request proof that you owe the debt.",
+                "description": "You have the right to request proof that you owe the debt.",
+                "points": [
+                    "Send a validation request within 30 days of first contact",
+                    "Collector must provide amount owed, creditor name, and verification",
+                    "Collection must pause until validation is provided",
+                    "Dispute inaccurate information in writing",
+                ]
             },
             {
-                "title": "Right to Request Debt Validation",
-                "description": "You can request written verification of the debt including the amount owed and the name of the original creditor."
+                "title": "Statute of Limitations",
+                "icon": "⏳",
+                "summary": "Debts have a time limit after which they cannot be legally enforced.",
+                "description": "Debts have a time limit after which they cannot be legally enforced.",
+                "points": [
+                    "Varies by state (typically 3-6 years for credit card debt)",
+                    "Making a payment may restart the clock in some states",
+                    "Expired debts can still appear on credit reports for 7 years",
+                    "You can still be contacted, but not sued after expiration",
+                ]
             },
             {
-                "title": "Right to Stop Contact",
-                "description": "You can request in writing that a debt collector stop contacting you. They must comply except to confirm no further contact or notify of legal action."
+                "title": "Credit Reporting Rights",
+                "icon": "📊",
+                "summary": "You have rights regarding how debts appear on your credit report.",
+                "description": "You have rights regarding how debts appear on your credit report.",
+                "points": [
+                    "Request free credit reports from AnnualCreditReport.com",
+                    "Dispute inaccurate items with credit bureaus",
+                    "Settled debts should be reported as Paid or Settled",
+                    "Negative items must be removed after 7 years",
+                ]
             },
             {
-                "title": "Right to Sue for Violations",
-                "description": "If a debt collector violates the FDCPA, you have the right to sue them in state or federal court within one year of the violation."
+                "title": "Settlement Agreement Protections",
+                "icon": "🤝",
+                "summary": "Always get settlement terms in writing before paying.",
+                "description": "Always get settlement terms in writing before paying.",
+                "points": [
+                    "Require written confirmation of payment in full status",
+                    "Specify how the account will be reported to credit bureaus",
+                    "Keep copies of all correspondence and payment records",
+                    "Never give collectors access to your bank account",
+                ]
             },
             {
                 "title": "Right to Negotiate Settlement",
-                "description": "You have the right to negotiate a settlement for less than the full amount owed. Lenders often prefer settlement over non-payment."
+                "icon": "⚖️",
+                "summary": "You have the right to negotiate a settlement for less than the full amount owed.",
+                "description": "You have the right to negotiate a settlement for less than the full amount owed.",
+                "points": [
+                    "Lenders often prefer settlement over non-payment",
+                    "Start negotiations at 40-50% of outstanding balance",
+                    "Always get the agreed settlement in writing first",
+                    "Consult a financial advisor for complex situations",
+                ]
             }
         ]
     }
