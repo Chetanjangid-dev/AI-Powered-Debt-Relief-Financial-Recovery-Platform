@@ -1,0 +1,108 @@
+.settlement-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 900px) {
+  .settlement-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settlement-notice {
+  background: var(--accent-muted);
+  color: var(--accent);
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  margin-bottom: 1rem;
+}
+
+.settlement-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-muted);
+}
+
+.settlement-empty span {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.settlement-loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.settlement-highlight {
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--accent-muted);
+  border-radius: var(--radius);
+  margin-bottom: 1.25rem;
+}
+
+.settlement-label {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.settlement-amount {
+  display: block;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.settlement-pct {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.settlement-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.settlement-detail {
+  background: var(--bg-input);
+  padding: 0.875rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.settlement-detail span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.settlement-detail strong {
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+}
+
+.settlement-strategy h4 {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.settlement-strategy p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .settlement-details {
+    grid-template-columns: 1fr;
+  }
+}

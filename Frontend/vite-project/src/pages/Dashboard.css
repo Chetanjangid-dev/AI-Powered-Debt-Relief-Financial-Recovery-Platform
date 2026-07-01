@@ -1,0 +1,109 @@
+.dashboard-metrics {
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-notice {
+  background: var(--accent-muted);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--accent);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-bottom {
+  margin-top: 0;
+}
+
+.health-score-ring {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.health-score-value {
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.health-score-label {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+}
+
+.health-good .health-score-value { color: var(--success); }
+.health-fair .health-score-value { color: var(--warning); }
+.health-poor .health-score-value { color: var(--danger); }
+
+.health-bar {
+  height: 8px;
+  background: var(--bg-input);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.health-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.health-bar-fill.health-good { background: var(--success); }
+.health-bar-fill.health-fair { background: var(--warning); }
+.health-bar-fill.health-poor { background: var(--danger); }
+
+.loan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.loan-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  gap: 1rem;
+}
+
+.loan-info strong {
+  display: block;
+  font-size: 0.9375rem;
+}
+
+.loan-rate {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.loan-meta {
+  text-align: right;
+}
+
+.loan-balance {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.loan-status {
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-current { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+.status-delinquent { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+.status-in-collections { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+.page-loading {
+  color: var(--text-muted);
+  padding: 2rem;
+}
