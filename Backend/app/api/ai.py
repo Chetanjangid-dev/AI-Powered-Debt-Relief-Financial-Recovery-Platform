@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.core.database import get_db
-from app.services.fallback_service import generate_fallback_recommendation
+from app.core.config import settings
+from app.services.gemini_service import call_gemini
 from app.services.financial_engine import run_financial_analysis
 from app.utils.exceptions import AIServiceError
 
@@ -14,8 +15,8 @@ router = APIRouter(prefix="/ai", tags=["AI"])
 class NegotiationLetterRequest(BaseModel):
     """
     Request body for generating a negotiation letter.
-    This is Scenario 2 from the project README.
-    Gemini AI will replace fallback in Task 7.
+    Scenario 2 from project README.
+    Frontend sends borrower + loan data, gets back AI-generated letter.
     """
     loan_amount: float = Field(..., gt=0)
     outstanding_balance: float = Field(..., gt=0)
@@ -31,13 +32,12 @@ class NegotiationLetterRequest(BaseModel):
 @router.post("/negotiation-letter")
 def generate_negotiation_letter(request: NegotiationLetterRequest):
     """
-    Generates a professional negotiation letter.
+    Generates a professional negotiation letter using Gemini AI.
     Scenario 2: Frontend sends borrower + loan data, gets back a letter.
-    Currently uses fallback service. Gemini AI plugs in here during Task 7.
-    Team Lead's Gemini integration will replace the fallback call below.
-    Returns: negotiation letter text + strategy + financial tips
+    Automatically falls back to rule-based system if Gemini is unavailable.
+    Returns: negotiation letter text + strategy + financial tips + source
     """
-    # Step 1: Run financial analysis to get metrics
+    # Step 1: Run financial analysis
     analysis = run_financial_analysis(
         loan_amount=request.loan_amount,
         outstanding_balance=request.outstanding_balance,
@@ -48,9 +48,8 @@ def generate_negotiation_letter(request: NegotiationLetterRequest):
         emi_amount=request.emi_amount,
     )
 
-    # Step 2: Generate letter via fallback (Gemini replaces this in Task 7)
-    # INTEGRATION POINT FOR TEAM LEAD: replace the line below with gemini_service call
-    result = generate_fallback_recommendation(
+    # Step 2: Call Gemini AI (falls back automatically if Gemini unavailable)
+    result = call_gemini(
         debt_stress_level=analysis["debt_stress_level"],
         financial_health_score=analysis["financial_health_score"],
         emi_ratio=analysis["emi_ratio"],
@@ -58,10 +57,13 @@ def generate_negotiation_letter(request: NegotiationLetterRequest):
         outstanding_balance=request.outstanding_balance,
         recommended_settlement_amount=analysis["recommended_settlement_amount"],
         settlement_percentage=analysis["settlement_percentage"],
+        lender_name=request.lender_name,
+        borrower_name=request.borrower_name,
     )
 
     return {
         "success": True,
+        "source": result["source"],
         "lender_name": request.lender_name,
         "borrower_name": request.borrower_name,
         "negotiation_letter": result["negotiation_letter"],
@@ -80,10 +82,10 @@ def ai_status():
     """
     Returns current AI service status.
     Frontend uses this to show whether Gemini AI is active or fallback is running.
-    Team Lead updates GEMINI_ACTIVE to True once Gemini is integrated in Task 7.
     """
+    gemini_active = bool(settings.GEMINI_API_KEY)
     return {
-        "gemini_active": False,
-        "fallback_active": True,
-        "message": "Running on rule-based fallback. Gemini AI integration pending.",
+        "gemini_active": gemini_active,
+        "fallback_active": not gemini_active,
+        "message": "Gemini AI active." if gemini_active else "Running on fallback.",
     }

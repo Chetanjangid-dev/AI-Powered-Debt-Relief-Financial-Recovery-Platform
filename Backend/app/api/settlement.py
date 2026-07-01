@@ -5,7 +5,7 @@ from typing import Optional
 
 from app.core.database import get_db
 from app.services.financial_engine import run_financial_analysis
-from app.services.fallback_service import generate_fallback_recommendation
+from app.services.gemini_service import call_gemini
 from app.utils.exceptions import NotFoundError, DatabaseError
 
 import sys, os
@@ -58,8 +58,8 @@ def get_settlement_recommendation(request: SettlementRequest, db: Session = Depe
         emi_amount=request.emi_amount,
     )
 
-    # Step 2: Generate recommendation via fallback (Gemini replaces this in Task 7)
-    recommendation = generate_fallback_recommendation(
+    # Step 2: Generate recommendation via Gemini AI
+    recommendation = call_gemini(
         debt_stress_level=analysis["debt_stress_level"],
         financial_health_score=analysis["financial_health_score"],
         emi_ratio=analysis["emi_ratio"],
