@@ -1,0 +1,37 @@
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 0;
+}
+
+.card-title {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.card-subtitle {
+  font-size: 0.8125rem;
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+}
+
+.card-actions {
+  flex-shrink: 0;
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+.card-header + .card-body {
+  padding-top: 1rem;
+}
