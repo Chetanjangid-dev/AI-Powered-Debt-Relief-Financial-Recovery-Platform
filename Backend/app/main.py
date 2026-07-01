@@ -3,12 +3,14 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "Database"))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import init_database
 from app.api import health, loan, financial, settlement, ai, user
+from app.services.financial_engine import run_financial_analysis
+from app.services.gemini_service import call_gemini
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -42,17 +44,15 @@ app.include_router(financial.router,   prefix=settings.API_PREFIX)
 app.include_router(settlement.router,  prefix=settings.API_PREFIX)
 app.include_router(ai.router,          prefix=settings.API_PREFIX)
 
-# ── URL Aliases for Frontend compatibility ────────────────────────────────────
-# Chetali's api.js calls these URLs — we map them to our existing endpoints
 
-from fastapi import Request
-from fastapi.responses import JSONResponse
-from app.services.financial_engine import run_financial_analysis
-from app.services.gemini_service import call_gemini
+# ── URL Aliases for Frontend compatibility ─────────────────────────────────────
+# These endpoints match exactly what Chetali's api.js calls
+# Backend handles ALL field name differences — frontend needs zero changes
+
 
 @app.post("/api/auth/register")
 async def alias_register(request: Request):
-    """Alias: maps frontend /api/auth/register → /api/v1/auth/register"""
+    """Alias: /api/auth/register → /api/v1/auth/register"""
     body = await request.json()
     from app.api.user import register, RegisterRequest
     from app.core.database import get_db
@@ -62,7 +62,7 @@ async def alias_register(request: Request):
 
 @app.post("/api/auth/login")
 async def alias_login(request: Request):
-    """Alias: maps frontend /api/auth/login → /api/v1/auth/login"""
+    """Alias: /api/auth/login → /api/v1/auth/login"""
     body = await request.json()
     from app.api.user import login, LoginRequest
     from app.core.database import get_db
@@ -74,8 +74,8 @@ async def alias_login(request: Request):
 async def alias_dashboard():
     """
     Dashboard overview endpoint.
-    Frontend calls this to get summary data.
-    Returns placeholder structure — connects to real data once user_id is passed.
+    Frontend calls this on load to show financial summary.
+    Returns zero values until user submits loan details.
     """
     return {
         "totalDebt": 0,
@@ -91,53 +91,118 @@ async def alias_dashboard():
 
 @app.post("/api/settlement/predict")
 async def alias_settlement(request: Request):
-    """Alias: maps frontend /api/settlement/predict → our financial engine"""
+    """
+    Settlement prediction endpoint.
+    Accepts Chetali's frontend field names AND standard names — both work.
+    Returns response in exact format Chetali's SettlementPredictor.jsx expects.
+    Chetali reads: result.recommended_settlement, result.settlement_percentage,
+                   result.savings, result.strategy, result.confidence,
+                   result.monthly_payment_plan
+    """
     body = await request.json()
+
+    # Accept both Chetali's field names and standard names
+    loan_amount = float(body.get("loan_amount") or body.get("original_balance") or 1)
+    outstanding_balance = float(body.get("outstanding_balance") or body.get("current_balance") or 1)
+    interest_rate = float(body.get("interest_rate") or 12.0)
+    tenure_months = int(body.get("tenure_months") or body.get("months_delinquent") or 12)
+    monthly_income = float(body.get("monthly_income") or body.get("monthly_payment_capacity") or 1)
+    # If monthly_expenses not provided, estimate as 60% of income
+    monthly_expenses = float(body.get("monthly_expenses") or monthly_income * 0.6)
+
+    # Safety check — expenses can't exceed income
+    if monthly_expenses >= monthly_income:
+        monthly_expenses = monthly_income * 0.6
+
     analysis = run_financial_analysis(
-        loan_amount=body.get("loan_amount", 0),
-        outstanding_balance=body.get("outstanding_balance", 0),
-        interest_rate=body.get("interest_rate", 0),
-        tenure_months=body.get("tenure_months", 12),
-        monthly_income=body.get("monthly_income", 0),
-        monthly_expenses=body.get("monthly_expenses", 0),
+        loan_amount=loan_amount,
+        outstanding_balance=outstanding_balance,
+        interest_rate=interest_rate,
+        tenure_months=tenure_months,
+        monthly_income=monthly_income,
+        monthly_expenses=monthly_expenses,
     )
+
     recommendation = call_gemini(
         debt_stress_level=analysis["debt_stress_level"],
         financial_health_score=analysis["financial_health_score"],
         emi_ratio=analysis["emi_ratio"],
         monthly_surplus=analysis["monthly_surplus"],
-        outstanding_balance=body.get("outstanding_balance", 0),
+        outstanding_balance=outstanding_balance,
         recommended_settlement_amount=analysis["recommended_settlement_amount"],
         settlement_percentage=analysis["settlement_percentage"],
     )
-    return {"success": True, "analysis": analysis, "recommendation": recommendation}
+
+    # Return in Chetali's exact expected format
+    return {
+        "success": True,
+        "recommended_settlement": str(round(analysis["recommended_settlement_amount"], 2)),
+        "settlement_percentage": f"{analysis['settlement_percentage']}%",
+        "monthly_payment_plan": str(round(analysis["recommended_settlement_amount"] / 12, 2)),
+        "confidence": (
+            "High" if analysis["financial_health_score"] >= 70
+            else "Medium" if analysis["financial_health_score"] >= 40
+            else "Low"
+        ),
+        "strategy": recommendation["negotiation_strategy"],
+        "savings": str(round(outstanding_balance - analysis["recommended_settlement_amount"], 2)),
+        "analysis": analysis,
+    }
 
 
 @app.post("/api/negotiation/generate")
 async def alias_negotiation(request: Request):
-    """Alias: maps frontend /api/negotiation/generate → our AI endpoint"""
+    """
+    Negotiation letter generation endpoint.
+    Accepts Chetali's frontend field names AND standard names — both work.
+    Returns response in exact format Chetali's NegotiationEmail.jsx expects.
+    Chetali reads: data.letter || data.content
+    We return all three keys so any version of her code works.
+    """
     body = await request.json()
-    analysis = run_financial_analysis(
-        loan_amount=body.get("loan_amount", 0),
-        outstanding_balance=body.get("outstanding_balance", 0),
-        interest_rate=body.get("interest_rate", 0),
-        tenure_months=body.get("tenure_months", 12),
-        monthly_income=body.get("monthly_income", 0),
-        monthly_expenses=body.get("monthly_expenses", 0),
+
+    # Accept both Chetali's field names and standard names
+    outstanding_balance = float(
+        body.get("current_balance") or body.get("outstanding_balance") or 1
     )
+    offer_amount = float(body.get("offer_amount") or outstanding_balance * 0.5)
+    monthly_income = float(
+        body.get("monthly_payment_capacity") or body.get("monthly_income") or offer_amount * 3
+    )
+    monthly_expenses = float(body.get("monthly_expenses") or monthly_income * 0.6)
+    loan_amount = float(body.get("loan_amount") or outstanding_balance * 1.2)
+
+    # Safety check
+    if monthly_expenses >= monthly_income:
+        monthly_expenses = monthly_income * 0.6
+
+    analysis = run_financial_analysis(
+        loan_amount=loan_amount,
+        outstanding_balance=outstanding_balance,
+        interest_rate=float(body.get("interest_rate") or 12.0),
+        tenure_months=int(body.get("tenure_months") or 24),
+        monthly_income=monthly_income,
+        monthly_expenses=monthly_expenses,
+    )
+
     result = call_gemini(
         debt_stress_level=analysis["debt_stress_level"],
         financial_health_score=analysis["financial_health_score"],
         emi_ratio=analysis["emi_ratio"],
         monthly_surplus=analysis["monthly_surplus"],
-        outstanding_balance=body.get("outstanding_balance", 0),
-        recommended_settlement_amount=analysis["recommended_settlement_amount"],
+        outstanding_balance=outstanding_balance,
+        recommended_settlement_amount=offer_amount,
         settlement_percentage=analysis["settlement_percentage"],
-        lender_name=body.get("lender_name", "the Lender"),
-        borrower_name=body.get("borrower_name", "[Borrower Name]"),
+        lender_name=body.get("creditor_name") or body.get("lender_name") or "the Lender",
+        borrower_name=body.get("borrower_name") or "[Borrower Name]",
     )
+
+    # Return ALL possible key names Chetali might check
+    # data.letter || data.content || data.negotiation_letter — all work
     return {
         "success": True,
+        "letter": result["negotiation_letter"],
+        "content": result["negotiation_letter"],
         "negotiation_letter": result["negotiation_letter"],
         "negotiation_strategy": result["negotiation_strategy"],
         "financial_tips": result["financial_tips"],
@@ -146,12 +211,16 @@ async def alias_negotiation(request: Request):
 
 @app.get("/api/rights")
 async def alias_rights():
-    """Returns borrower rights information for the Know Your Rights page."""
+    """
+    Borrower rights endpoint.
+    Frontend KnowYourRights.jsx calls this on load.
+    Returns list of legal rights borrowers have.
+    """
     return {
         "rights": [
             {
                 "title": "Right to Fair Debt Collection",
-                "description": "Under the Fair Debt Collection Practices Act (FDCPA), debt collectors cannot harass, oppress, or abuse you."
+                "description": "Under the Fair Debt Collection Practices Act, debt collectors cannot harass, oppress, or abuse you in any way."
             },
             {
                 "title": "Right to Dispute a Debt",
@@ -179,9 +248,14 @@ async def alias_rights():
 
 @app.get("/api/history")
 async def alias_history():
-    """Returns settlement and negotiation history. Placeholder until auth is connected."""
+    """
+    History endpoint.
+    Frontend History.jsx calls this on load.
+    Returns empty list — will connect to real data once user auth is fully integrated.
+    """
     return {
         "history": [],
+        "items": [],
         "message": "Login to view your settlement and negotiation history."
     }
 
