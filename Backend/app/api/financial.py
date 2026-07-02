@@ -45,7 +45,6 @@ def analyze_finances(request: FinancialAnalysisRequest):
     """
     Core financial analysis endpoint — no DB required.
     Frontend sends loan + income data, gets back full financial metrics.
-    Integrates with: Financial Engine → Calculator → returns metrics to Frontend
     Returns: EMI, surplus, ratios, stress level, health score, settlement recommendation
     """
     result = run_financial_analysis(
@@ -88,7 +87,7 @@ def get_monthly_financials(user_id: int, db: Session = Depends(get_db)):
     Frontend uses this to populate financial history on dashboard.
     Returns: list of monthly financial records
     """
-    records = crud.get_monthly_financials_by_user(db=db, user_id=user_id)
+    records = crud.get_financials_by_user(db=db, user_id=user_id)
     return {"user_id": user_id, "records": records, "total": len(records)}
 
 
@@ -102,7 +101,6 @@ def predict_settlement_from_db(
     """
     Predicts settlement using Khushi's settlement_prediction.py engine.
     Uses actual loan data from database for this user.
-    Frontend can call this after user has loans saved in DB.
     Returns: full prediction with per-loan settlement amounts.
     """
     from settlement_prediction import generate_settlement_prediction, PredictionError

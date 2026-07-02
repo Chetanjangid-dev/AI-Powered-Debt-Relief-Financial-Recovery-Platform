@@ -12,6 +12,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "Database"))
 import crud
 import schemas
+import models
 
 router = APIRouter(prefix="/settlement", tags=["Settlement"])
 
@@ -33,18 +34,12 @@ class SettlementRequest(BaseModel):
     notes: Optional[str] = None
 
 
-class SettlementActionRequest(BaseModel):
-    """Request body for accepting or rejecting a settlement."""
-    settlement_id: int
-    action: str = Field(..., description="Must be 'accept' or 'reject'")
-
-
 @router.post("/recommend")
 def get_settlement_recommendation(request: SettlementRequest, db: Session = Depends(get_db)):
     """
-    Generates a settlement recommendation using the Financial Engine + Fallback Service.
-    This is the Scenario 1 endpoint from the project README.
-    Flow: Frontend → this endpoint → Financial Engine → Fallback Service → DB save → Frontend
+    Generates a settlement recommendation using Financial Engine + Gemini AI.
+    Scenario 1 from project README.
+    Flow: Frontend → Financial Engine → Gemini AI → DB save → Frontend
     Returns: full recommendation with strategy, letter, tips, and settlement offer
     """
     # Step 1: Run financial analysis
@@ -77,7 +72,6 @@ def get_settlement_recommendation(request: SettlementRequest, db: Session = Depe
             settlement_percentage=analysis["settlement_percentage"],
             negotiation_strategy=recommendation["negotiation_strategy"],
         )
-        
         saved = crud.create_settlement(db=db, settlement=settlement_data)
         recommendation["settlement_id"] = saved.id
     except Exception as e:
@@ -89,23 +83,31 @@ def get_settlement_recommendation(request: SettlementRequest, db: Session = Depe
     return {"success": True, "recommendation": recommendation}
 
 
+@router.get("/user/{user_id}")
+def get_user_settlements(user_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieves all settlement records for a user via their loans.
+    Frontend uses this to populate settlement history on dashboard.
+    """
+    # Get all loans for this user first
+    loans = crud.get_loans_by_user(db=db, user_id=user_id)
+    all_settlements = []
+    for loan in loans:
+        settlements = crud.get_settlements_by_loan(db=db, loan_id=loan.id)
+        all_settlements.extend(settlements)
+    return {"user_id": user_id, "settlements": all_settlements, "total": len(all_settlements)}
+
+
 @router.get("/{settlement_id}")
 def get_settlement(settlement_id: int, db: Session = Depends(get_db)):
     """
     Retrieves a single settlement record by ID.
+    Uses direct DB query since crud.get_settlement doesn't exist in teammate's crud.py
     Frontend uses this to show settlement detail view.
     """
-    settlement = crud.get_settlement(db=db, settlement_id=settlement_id)
+    settlement = db.query(models.SettlementRecommendation).filter(
+        models.SettlementRecommendation.id == settlement_id
+    ).first()
     if not settlement:
         raise NotFoundError("Settlement", settlement_id)
     return settlement
-
-
-@router.get("/user/{user_id}")
-def get_user_settlements(user_id: int, db: Session = Depends(get_db)):
-    """
-    Retrieves all settlement records for a user.
-    Frontend uses this to populate settlement history on dashboard.
-    """
-    settlements = crud.get_settlements_by_user(db=db, user_id=user_id)
-    return {"user_id": user_id, "settlements": settlements, "total": len(settlements)}
