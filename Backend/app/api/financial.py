@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -6,7 +6,6 @@ from datetime import date
 
 from app.core.database import get_db
 from app.services.financial_engine import run_financial_analysis
-from fastapi import HTTPException
 from app.utils.exceptions import DatabaseError
 
 import sys, os
@@ -80,6 +79,8 @@ def save_monthly_financial(request: MonthlyFinancialRequest, db: Session = Depen
         return {"success": True, "record_id": record.id, "message": "Monthly financial data saved"}
     except Exception as e:
         raise DatabaseError(f"Failed to save monthly financial data: {str(e)}")
+
+
 @router.get("/monthly/{user_id}")
 def get_monthly_financials(user_id: int, db: Session = Depends(get_db)):
     """
@@ -90,7 +91,8 @@ def get_monthly_financials(user_id: int, db: Session = Depends(get_db)):
     records = crud.get_monthly_financials_by_user(db=db, user_id=user_id)
     return {"user_id": user_id, "records": records, "total": len(records)}
 
-    @router.post("/predict-settlement/{user_id}")
+
+@router.post("/predict-settlement/{user_id}")
 def predict_settlement_from_db(
     user_id: int,
     monthly_income: float,
@@ -103,8 +105,6 @@ def predict_settlement_from_db(
     Frontend can call this after user has loans saved in DB.
     Returns: full prediction with per-loan settlement amounts.
     """
-    import sys, os
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "Database"))
     from settlement_prediction import generate_settlement_prediction, PredictionError
 
     try:
