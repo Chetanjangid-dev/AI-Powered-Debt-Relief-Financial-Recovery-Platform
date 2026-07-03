@@ -12,9 +12,9 @@ class Settings:
 
     # Database
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "sqlite:///../Database/debt_relief.db"
-    )
+    "DATABASE_URL",
+    "sqlite:///./debt_relief.db"
+   )
 
     # Google Gemini AI
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
