@@ -24,10 +24,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://ai-powered-debt-relief-financial-recovery-platform.vercel.app"
-],
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://ai-powered-debt-relief-financial-recovery-platform-ca6a2fnj6.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
