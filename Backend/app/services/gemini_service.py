@@ -1,12 +1,12 @@
 import os
 import sys
 import json
-from typing import Optional
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Database"))
 
 from app.core.config import settings
 from app.services.fallback_service import generate_fallback_recommendation
+from app.services.openrouter_service import call_openrouter
 
 
 def _build_prompt(
@@ -22,7 +22,7 @@ def _build_prompt(
 ) -> str:
     """
     Builds a detailed prompt for Gemini AI based on borrower's financial profile.
-    The more specific the prompt, the better the AI response.
+    Same prompt is reused for OpenRouter if Gemini fails.
     """
     return f"""
 You are a professional financial advisor specializing in debt settlement and negotiation.
@@ -72,91 +72,85 @@ def call_gemini(
     borrower_name: str = "[Borrower Name]",
 ) -> dict:
     """
-    Calls Google Gemini API to generate AI-powered settlement recommendation.
-    Falls back to rule-based system if:
-    - API key is missing
-    - Gemini API call fails
-    - Response cannot be parsed
-    This ensures the platform ALWAYS returns a useful response.
-
-    Returns: dict with source ('gemini' or 'fallback') + recommendation fields
+    AI chain: Gemini → OpenRouter → Fallback
+    Tries Gemini first. If quota exhausted, tries OpenRouter.
+    If both fail, uses rule-based fallback. Never crashes.
     """
 
-    # Check API key exists and has valid length
-    if not settings.GEMINI_API_KEY or len(settings.GEMINI_API_KEY) < 10:
-        print("WARNING: GEMINI_API_KEY not set. Using fallback service.")
-        return generate_fallback_recommendation(
-            debt_stress_level=debt_stress_level,
-            financial_health_score=financial_health_score,
-            emi_ratio=emi_ratio,
-            monthly_surplus=monthly_surplus,
-            outstanding_balance=outstanding_balance,
-            recommended_settlement_amount=recommended_settlement_amount,
-            settlement_percentage=settlement_percentage,
-        )
+    # Build prompt once — reused for both Gemini and OpenRouter
+    prompt = _build_prompt(
+        debt_stress_level=debt_stress_level,
+        financial_health_score=financial_health_score,
+        emi_ratio=emi_ratio,
+        monthly_surplus=monthly_surplus,
+        outstanding_balance=outstanding_balance,
+        recommended_settlement_amount=recommended_settlement_amount,
+        settlement_percentage=settlement_percentage,
+        lender_name=lender_name,
+        borrower_name=borrower_name,
+    )
 
-    try:
-        from google import genai
+    # ── Step 1: Try Gemini ────────────────────────────────────────────────────
+    if settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) >= 10:
+        try:
+            from google import genai
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash-lite",
+                contents=prompt,
+            )
+            raw_text = response.text.strip()
+            if raw_text.startswith("```"):
+                raw_text = raw_text.split("```")[1]
+                if raw_text.startswith("json"):
+                    raw_text = raw_text[4:]
+            parsed = json.loads(raw_text.strip())
+            print("✅ Gemini responded successfully.")
+            return {
+                "source": "gemini",
+                "recommendation_summary": parsed.get("recommendation_summary", ""),
+                "negotiation_strategy": parsed.get("negotiation_strategy", ""),
+                "negotiation_letter": parsed.get("negotiation_letter", ""),
+                "financial_tips": parsed.get("financial_tips", []),
+                "suggested_offer": recommended_settlement_amount,
+                "offer_percentage": settlement_percentage,
+                "health_score": financial_health_score,
+                "stress_level": debt_stress_level,
+            }
+        except Exception as gemini_error:
+            print(f"WARNING: Gemini failed: {gemini_error}. Trying OpenRouter...")
+    else:
+        print("WARNING: GEMINI_API_KEY not set. Trying OpenRouter...")
 
-        # Initialize Gemini client
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    # ── Step 2: Try OpenRouter ────────────────────────────────────────────────
+    if settings.OPENROUTER_API_KEY and len(settings.OPENROUTER_API_KEY) >= 10:
+        try:
+            parsed = call_openrouter(prompt)
+            print("✅ OpenRouter responded successfully.")
+            return {
+                "source": "openrouter",
+                "recommendation_summary": parsed.get("recommendation_summary", ""),
+                "negotiation_strategy": parsed.get("negotiation_strategy", ""),
+                "negotiation_letter": parsed.get("negotiation_letter", ""),
+                "financial_tips": parsed.get("financial_tips", []),
+                "suggested_offer": recommended_settlement_amount,
+                "offer_percentage": settlement_percentage,
+                "health_score": financial_health_score,
+                "stress_level": debt_stress_level,
+            }
+        except Exception as openrouter_error:
+            print(f"WARNING: OpenRouter failed: {openrouter_error}. Using fallback...")
+    else:
+        print("WARNING: OPENROUTER_API_KEY not set. Using fallback...")
 
-        # Build the prompt
-        prompt = _build_prompt(
-            debt_stress_level=debt_stress_level,
-            financial_health_score=financial_health_score,
-            emi_ratio=emi_ratio,
-            monthly_surplus=monthly_surplus,
-            outstanding_balance=outstanding_balance,
-            recommended_settlement_amount=recommended_settlement_amount,
-            settlement_percentage=settlement_percentage,
-            lender_name=lender_name,
-            borrower_name=borrower_name,
-        )
-
-        # Call Gemini
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-lite",
-            contents=prompt,
-        )
-
-        # Extract text response
-        raw_text = response.text.strip()
-
-        # Clean markdown code fences if Gemini wraps response in them
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("```")[1]
-            if raw_text.startswith("json"):
-                raw_text = raw_text[4:]
-        raw_text = raw_text.strip()
-
-        # Parse JSON response from Gemini
-        parsed = json.loads(raw_text)
-
-        return {
-            "source": "gemini",
-            "recommendation_summary": parsed.get("recommendation_summary", ""),
-            "negotiation_strategy": parsed.get("negotiation_strategy", ""),
-            "negotiation_letter": parsed.get("negotiation_letter", ""),
-            "financial_tips": parsed.get("financial_tips", []),
-            "suggested_offer": recommended_settlement_amount,
-            "offer_percentage": settlement_percentage,
-            "health_score": financial_health_score,
-            "stress_level": debt_stress_level,
-        }
-
-    except Exception as e:
-        # Any failure → gracefully fall back to rule-based system
-        # Backend never crashes — always returns useful response
-        print(f"WARNING: Gemini API error: {str(e)}. Switching to fallback service.")
-        result = generate_fallback_recommendation(
-            debt_stress_level=debt_stress_level,
-            financial_health_score=financial_health_score,
-            emi_ratio=emi_ratio,
-            monthly_surplus=monthly_surplus,
-            outstanding_balance=outstanding_balance,
-            recommended_settlement_amount=recommended_settlement_amount,
-            settlement_percentage=settlement_percentage,
-        )
-        result["gemini_error"] = str(e)
-        return result
+    # ── Step 3: Fallback ──────────────────────────────────────────────────────
+    print("Using rule-based fallback service.")
+    return generate_fallback_recommendation(
+        debt_stress_level=debt_stress_level,
+        financial_health_score=financial_health_score,
+        emi_ratio=emi_ratio,
+        monthly_surplus=monthly_surplus,
+        outstanding_balance=outstanding_balance,
+        recommended_settlement_amount=recommended_settlement_amount,
+        settlement_percentage=settlement_percentage,
+    )
