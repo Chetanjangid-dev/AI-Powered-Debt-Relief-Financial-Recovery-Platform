@@ -1,108 +1,256 @@
 # AI Powered Debt Relief & Financial Recovery Platform
 
-A full-stack web application that helps borrowers understand their debt situation, get an AI-generated settlement recommendation, and produce a professional negotiation letter to send to their lender.
+An AI-powered full-stack web application that helps borrowers analyze their financial condition, predict a realistic debt settlement amount, and generate a professional debt negotiation letter using Google Gemini AI.
 
-Built with **React (Vite)** on the frontend, **FastAPI (Python)** on the backend, **SQLite + SQLAlchemy** for persistence, and **Google Gemini** for AI-generated negotiation content (with an automatic rule-based fallback when Gemini is unavailable).
-
-> This documentation was produced by reverse-engineering the uploaded source code. Everything stated here is drawn directly from the code unless explicitly marked "**Inferred**" or "**Assumption**."
+Built using **React + Vite**, **FastAPI**, **SQLite**, **SQLAlchemy**, and **Google Gemini AI**.
 
 ---
 
-## 1. What the project does
+# Features
 
-A borrower who is behind on a loan can:
+- User Registration & Login (JWT Authentication)
+- Debt & Financial Health Analysis
+- AI-powered Settlement Recommendation
+- AI-generated Negotiation Letter
+- Financial Health Score Calculation
+- Borrower Rights Information
+- Settlement History
+- REST API with Swagger Documentation
+- Responsive User Interface
 
-1. **Enter their loan and income details** and receive a financial-health analysis (EMI, EMI-to-income ratio, debt-to-income ratio, monthly surplus, "debt stress level") plus a recommended one-time settlement amount.
-2. **Generate a negotiation letter** — a ready-to-send settlement request addressed to their lender, written by Gemini AI (or a rule-based fallback engine if no Gemini API key is configured).
-3. **View a "Know Your Rights" page** with borrower-protection information (FDCPA, debt validation, statute of limitations, credit reporting, etc.) — currently static, hard-coded content.
-4. **Track history** of past settlement/negotiation activity (endpoint exists but is not yet wired to persisted data — see [Troubleshooting](docs/Troubleshooting.md)).
-5. **Log in / register** with email + password, protected by a JWT bearer token.
+---
 
-## 2. Problem it solves
-
-Debt settlement negotiation is normally handled by expensive third-party debt-settlement companies or requires the borrower to understand collections law and financial math on their own. This platform automates the two hardest parts of that process:
-
-- **The math** — objectively scoring how much financial stress a borrower is under and what settlement offer is realistic, using a EMI/DTI-based scoring engine (`financial_engine.py`, `settlement_prediction.py`).
-- **The writing** — producing a professional, persuasive settlement letter tailored to the borrower's numbers, using generative AI with a deterministic fallback so the platform never fails to produce a letter.
-
-## 3. Tech stack
+# Tech Stack
 
 | Layer | Technology |
-|---|---|
-| Frontend | React 19, React Router 7, Vite 8, plain CSS (no CSS framework) |
-| Backend API | FastAPI 0.138, Uvicorn, Pydantic v2 |
-| Database | SQLite (file-based), SQLAlchemy 2.0 ORM |
-| Auth | JWT (`python-jose`) + password hashing (`passlib`) |
-| AI | Google Gemini (`google-genai` SDK, model `gemini-2.0-flash-lite`) with a rule-based fallback service |
+|--------|------------|
+| Frontend | React 19, React Router, Vite |
+| Backend | FastAPI, Uvicorn |
+| Database | SQLite, SQLAlchemy |
+| Authentication | JWT, Passlib |
+| AI | Google Gemini API |
+| Language | Python, JavaScript |
 
-## 4. Repository layout
+---
 
-```
+# Project Structure
+
+```text
 AI Powered Debt Relief & Financial Recovery Platform/
-├── Backend/                 # FastAPI application
-│   └── app/
-│       ├── api/              # route modules (health, user, loan, financial, settlement, ai)
-│       ├── core/              # config, database wiring, (empty) security module
-│       ├── services/          # financial engine, calculator, Gemini + fallback AI services
-│       └── utils/              # helpers, validators, custom exceptions
-├── DataBase/                 # shared SQLAlchemy models/schemas + standalone teammate scripts
-├── Frontend/vite-project/     # React SPA
-├── Documents/docs.txt         # miscellaneous notes (not consumed by the app)
-└── Readme.md                  # original project README
+│
+├── Backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── core/
+│   │   ├── services/
+│   │   ├── utils/
+│   │   └── main.py
+│   │
+│   └── requirements.txt
+│
+├── Database/
+│   ├── models.py
+│   ├── crud.py
+│   ├── schemas.py
+│   └── auth.py
+│
+├── Frontend/
+│   └── vite-project/
+│       ├── src/
+│       ├── public/
+│       └── package.json
+│
+└── README.md
 ```
 
-Full breakdown: [`docs/Folder_Structure.md`](docs/Folder_Structure.md)
+---
 
-## 5. Quick start
+# Local Setup
 
-See [`docs/Installation.md`](docs/Installation.md) for full setup steps. Short version:
+## 1. Clone Repository
 
 ```bash
-# Backend
-cd Backend
-python -m venv venv && source venv/bin/activate   # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-# create Backend/.env with GEMINI_API_KEY=... (optional — fallback works without it)
-uvicorn app.main:app --reload
+git clone https://github.com/Chetanjangid-dev/AI-Powered-Debt-Relief-Financial-Recovery-Platform.git
 
-# Frontend (separate terminal)
+cd AI-Powered-Debt-Relief-Financial-Recovery-Platform
+```
+
+---
+
+# Backend Setup
+
+Move into the Backend folder.
+
+```bash
+cd Backend
+```
+
+### Create Virtual Environment
+
+**Windows**
+
+```bash
+python -m venv venv
+```
+
+### Activate Virtual Environment
+
+```bash
+venv\Scripts\activate
+```
+
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Create a `.env` file inside the Backend directory
+
+```env
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+```
+
+### Run Backend
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Backend will run at:
+
+```
+http://localhost:8000
+```
+
+Swagger API Documentation:
+
+```
+http://localhost:8000/docs
+```
+
+---
+
+# Frontend Setup
+
+Open another terminal.
+
+Move into the frontend folder.
+
+```bash
 cd Frontend/vite-project
+```
+
+### Install Packages
+
+```bash
 npm install
+```
+
+### Create a `.env` file
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+---
+
+## Start Frontend
+
+### Method 1 (Recommended)
+
+```bash
 npm run dev
 ```
 
-Backend runs at `http://127.0.0.1:8000` (Swagger docs at `/docs`). Frontend runs at `http://localhost:5173`.
+### Method 2 (If `npm run dev` doesn't work)
 
-## 6. Documentation index
+```bash
+node .\node_modules\vite\bin\vite.js
+```
 
-| Document | Contents |
-|---|---|
-| [Architecture.md](docs/Architecture.md) | High-level system architecture and design rationale |
-| [System_Design.md](docs/System_Design.md) | Component responsibilities, request lifecycle, sequence diagrams |
-| [Folder_Structure.md](docs/Folder_Structure.md) | Annotated file tree |
-| [Installation.md](docs/Installation.md) | Local setup, prerequisites, run commands |
-| [Usage.md](docs/Usage.md) | How to use the app end-to-end (all 3 scenarios) |
-| [Configuration.md](docs/Configuration.md) | Environment variables and settings |
-| [API.md](docs/API.md) | Full REST API reference |
-| [Database_Schema.md](docs/Database_Schema.md) | Tables, columns, relationships, ER diagram |
-| [AI_Model.md](docs/AI_Model.md) | Gemini integration, prompt design, fallback logic |
-| [Deployment.md](docs/Deployment.md) | How to deploy the backend and frontend |
-| [Security.md](docs/Security.md) | Auth model, known weaknesses, recommendations |
-| [Troubleshooting.md](docs/Troubleshooting.md) | Common issues found in the code and how to fix them |
-| [Contributing.md](docs/Contributing.md) | Contribution guidelines |
-| [Future_Improvements.md](docs/Future_Improvements.md) | Architect-level improvement backlog |
-| [FAQ.md](docs/FAQ.md) | Frequently asked questions |
-| [Glossary.md](docs/Glossary.md) | Domain and technical terms |
-| [Screenshots.md](docs/Screenshots.md) | Reference to submitted UI screenshots |
-| [Release_Notes.md](docs/Release_Notes.md) | Current version notes |
+Frontend will run at:
 
-## 7. Key finding upfront (read this before extending the code)
+```
+http://localhost:5173
+```
 
-This codebase shows clear signs of **parallel/independent team development that was never fully reconciled**:
+---
 
-- There are **two separate, inconsistent authentication implementations** — `DataBase/auth.py` (bcrypt-based, appears unused) and `Backend/app/api/user.py` (sha256_crypt-based, actually wired into the app).
-- `Backend/app/main.py` contains a large block of **hard-coded "alias" endpoints** (`/api/auth/login`, `/api/settlement/predict`, `/api/rights`, etc.) that exist specifically to match a frontend teammate's ("Chetali's") exact expected field names, duplicating logic that already exists in the versioned routers under `/api/v1/...`.
-- Two different settlement-scoring engines exist side by side: `Backend/app/services/financial_engine.py` (used by the versioned API) and `DataBase/settlement_prediction.py` (used only by one endpoint, `POST /api/v1/financial/predict-settlement/{user_id}`), with **different scoring formulas and different settlement-percentage outputs for the same input.**
-- The frontend's dashboard, history, and rights pages are **not reading from the database at all** — they call hard-coded alias endpoints that return static or placeholder data regardless of what's stored.
+# Deployment
 
+## Backend (Render)
+
+```
+https://ai-powered-debt-relief-financial.onrender.com
+```
+
+## Frontend (Vercel)
+
+```
+https://ai-powered-debt-relief-financial-re.vercel.app
+```
+
+### Frontend Environment Variable
+
+```env
+VITE_API_BASE_URL=https://ai-powered-debt-relief-financial.onrender.com
+```
+
+After updating the environment variable, redeploy the frontend on Vercel.
+
+---
+
+# API Endpoints
+
+| Endpoint | Method |
+|----------|--------|
+| `/api/auth/register` | POST |
+| `/api/auth/login` | POST |
+| `/api/dashboard` | GET |
+| `/api/settlement/predict` | POST |
+| `/api/negotiation/generate` | POST |
+| `/api/rights` | GET |
+| `/api/history` | GET |
+
+---
+
+# AI Features
+
+The application uses **Google Gemini AI** to:
+
+- Generate professional debt negotiation letters
+- Recommend settlement strategies
+- Provide personalized financial guidance
+
+If the Gemini API is unavailable, the backend automatically falls back to the built-in rule-based recommendation system.
+
+---
+
+# Future Improvements
+
+- Loan Management Dashboard
+- Payment Tracking
+- Settlement History from Database
+- Multi-user Support
+- Email Notifications
+- PDF Report Generation
+- PostgreSQL/MySQL Support
+- Admin Dashboard
+
+---
+
+# Contributors
+
+- **Chetan Jangid**
+- **Manthan suwalanka**
+- **khushi jain**
+- **chetali jaiswal**
+- **bhanu sharma**
+
+---
+
+# License
+
+This project was developed for educational and learning purposes.
 These are documented in detail in [Troubleshooting.md](docs/Troubleshooting.md) and [Future_Improvements.md](docs/Future_Improvements.md) — read those before making changes, since "the API doesn't do what I expect" is very likely explained there.
