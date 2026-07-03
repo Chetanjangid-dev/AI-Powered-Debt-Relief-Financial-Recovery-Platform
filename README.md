@@ -1,5 +1,5 @@
 # AI Powered Debt Relief & Financial Recovery Platform
-#try it out 🔗-ai-powered-debt-relief-financial-re.vercel.app
+**Try it out 🔗- https://ai-powered-debt-relief-financial-re.vercel.app**
 
 An AI-powered full-stack web application that helps borrowers analyze their financial condition, predict a realistic debt settlement amount, and generate a professional debt negotiation letter using Google Gemini AI.
 
