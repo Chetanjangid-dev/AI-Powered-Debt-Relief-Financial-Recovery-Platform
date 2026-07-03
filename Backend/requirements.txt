@@ -37,3 +37,4 @@ websockets==16.0
 wheel==0.47.0
 passlib[bcrypt]==1.7.4
 python-jose[cryptography]==3.5.0
+gunicorn==23.0.0
