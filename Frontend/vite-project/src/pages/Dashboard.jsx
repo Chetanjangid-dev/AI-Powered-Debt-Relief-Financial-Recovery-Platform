@@ -18,6 +18,27 @@ const PLACEHOLDER_DATA = {
   ],
 }
 
+// Treats a numeric-looking value (0, "0", "$0", "0%", null, undefined) as "empty".
+// Used to detect a freshly-created account with no data yet, so we can show
+// friendly sample numbers instead of a dashboard full of zeros.
+function isZeroLike(value) {
+  if (value === null || value === undefined) return true
+  const numeric = Number(String(value).replace(/[^0-9.-]/g, ''))
+  return !Number.isNaN(numeric) && numeric === 0
+}
+
+function isEmptyOverview(result) {
+  if (!result) return true
+  const noLoans = !result.loans || result.loans.length === 0
+  return (
+    isZeroLike(result.totalDebt) &&
+    isZeroLike(result.monthlyIncome) &&
+    isZeroLike(result.monthlyExpenses) &&
+    isZeroLike(result.financialHealthScore) &&
+    noLoans
+  )
+}
+
 export default function Dashboard() {
   const [data, setData] = useState(PLACEHOLDER_DATA)
   const [loading, setLoading] = useState(true)
@@ -27,7 +48,12 @@ export default function Dashboard() {
     async function fetchDashboard() {
       try {
         const result = await api.dashboard.getOverview()
-        setData(result)
+        if (isEmptyOverview(result)) {
+          setError('Showing sample data — add your income, expenses, and debts to see real numbers here.')
+          setData(PLACEHOLDER_DATA)
+        } else {
+          setData(result)
+        }
       } catch {
         setError('Using sample data — connect backend to load live metrics.')
         setData(PLACEHOLDER_DATA)
